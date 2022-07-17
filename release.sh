@@ -19,8 +19,9 @@ elif [ $# -gt 1 ]; then
     exit 1
 fi
 
-if ! [[ "$1" =~ ^[0-9](\.[0-9])*$ ]]; then
-    echo -e "${RED}ERROR:${NC} Version must comply with '^[0-9](\.[0-9])*$' regex! For example:"
+VERSION_REGEX='^[0-9](\.[0-9]){,2}$'
+if ! [[ "$1" =~ $VERSION_REGEX ]]; then
+    echo -e "${RED}ERROR:${NC} Version must comply with '$VERSION_REGEX' regex! For example:"
     echo -e "${GREEN}0${NC}"
     echo -e "${GREEN}0.1${NC}"
     echo -e "${GREEN}0.1.2${NC}"
@@ -32,18 +33,18 @@ set -x
 # 0. Clear build directory:
 rm -rf ./dist/*
 # 1. Checkout to master:
-git checkout master
-git pull
+git checkout master || exit 1
+git pull || exit 1
 # 2. Update pyproject.toml version:
 sed -E -i "s/version = \"[0-9](\.[0-9])*\"/version = \"$1\"/g" pyproject.toml
 # 3. Update pyproject.toml requires-python if needed.
 # 4. Update pyproject.toml classifiers if needed.
 # 5. Prepare release commit and tag:
 git commit --allow-empty -m "Release $1"
-git tag -a "$1" -m"Release $1 tag"
+git tag -a "$1" -m"Release $1 tag" || exit 1
 # 6. Build pypi package:
-python3 -m build
+python3 -m build || exit 1
 # 7. Push package to pypi:
-python3 -m twine upload --repository pypi dist/*
+python3 -m twine upload --repository pypi dist/* || exit 1
 # 8. Push release commit and tag to origin:
 git push
