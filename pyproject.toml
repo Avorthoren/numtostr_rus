@@ -1,0 +1,23 @@
+[project]
+name = "numtostr_rus"
+version = "0.0"
+authors = [
+	{name="Victor Podust", email="undefeatvip@gmail.com"},
+]
+description = "Simple python number to russian string converter"
+readme = "README.md"
+license = {file="LICENSE"}
+requires-python = ">=3.6.2"
+classifiers = [
+	"Programming Language :: Python :: 3",
+	"License :: OSI Approved :: MIT License",
+	"Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Avorthoren/numtostr_rus"
+"Bug Tracker" = "https://github.com/Avorthoren/numtostr_rus/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
