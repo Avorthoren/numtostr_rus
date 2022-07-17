@@ -1,6 +1,9 @@
-# numtostr_rus is simple python number to russian string converter
+# Simple python number-to-russian-string-converter
 
-
+[![image](https://img.shields.io/pypi/v/numtostr_rus.svg)](https://python.org/pypi/numtostr_rus)
+[![image](https://img.shields.io/pypi/pyversions/numtostr_rus.svg)](https://python.org/pypi/numtostr_rus)
+[![image](https://img.shields.io/badge/license-MIT-lightgrey)](https://python.org/pypi/numtostr_rus)
+[![image](https://img.shields.io/pypi/dm/numtostr_rus)](https://github.com/Avorthoren/numtostr_rus)
 
 ## Examples:
 

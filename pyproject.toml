@@ -4,12 +4,12 @@ version = "0.0"
 authors = [
 	{name="Victor Podust", email="undefeatvip@gmail.com"},
 ]
-description = "Simple python number to russian string converter"
+description = "Simple python number-to-russian-string converter"
 readme = "README.md"
 license = {file="LICENSE"}
 requires-python = ">=3.6.2"
 classifiers = [
-	"Programming Language :: Python :: 3",
+	"Programming Language :: Python :: 3.6.2+",
 	"License :: OSI Approved :: MIT License",
 	"Operating System :: OS Independent",
 ]
