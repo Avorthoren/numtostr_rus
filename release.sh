@@ -38,14 +38,12 @@ git pull || exit 1
 # 2. Update pyproject.toml version:
 sleep 0.5 & wait  # ensure files were updated
 sed -E -i "s/version = \"[0-9](\.[0-9])*\"/version = \"$1\"/g" pyproject.toml & wait
-# 3. Update pyproject.toml requires-python if needed.
-# 4. Update pyproject.toml classifiers if needed.
-# 5. Prepare release commit and tag:
+# 3. Prepare release commit and tag:
 git commit --allow-empty -am "Release $1"
 git tag -a "$1" -m "Release $1 tag" || exit 1
-# 6. Build pypi package:
+# 4. Build pypi package:
 python3 -m build || exit 1
-# 7. Push package to pypi:
+# 5. Push package to pypi:
 python3 -m twine upload --repository pypi dist/* || exit 1
-# 8. Push release commit and tag to origin:
+# 6. Push release commit and tag to origin:
 git push
