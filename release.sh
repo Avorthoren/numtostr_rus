@@ -40,6 +40,7 @@ sed -E -i "s/version = \"[0-9](\.[0-9])*\"/version = \"$1\"/g" pyproject.toml
 # 3. Update pyproject.toml requires-python if needed.
 # 4. Update pyproject.toml classifiers if needed.
 # 5. Prepare release commit and tag:
+sleep 0.1  # make sure pyproject.toml was saved already
 git commit --allow-empty -m "Release $1"
 git tag -a "$1" -m"Release $1 tag" || exit 1
 # 6. Build pypi package:
