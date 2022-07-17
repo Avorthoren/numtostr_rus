@@ -1,7 +1,7 @@
 #!/bin/bash
 # For release 0.1.2:
 # 1. Ensure git working directory is clean.
-# 2. Run this file providing one argument: version. Example:
+# 2. Run this file from project dir providing one argument: version. Example:
 # ./release.sh 0.1.2
 
 # Validate input arguments.
@@ -29,19 +29,21 @@ fi
 
 # Echo each command from now onwards:
 set -x
-# 0. Checkout to master:
+# 0. Clear build directory:
+rm -rf ./dist/*
+# 1. Checkout to master:
 git checkout master
 git pull
-# 1. Update pyproject.toml version:
+# 2. Update pyproject.toml version:
 sed -E -i "s/version = \"[0-9](\.[0-9])*\"/version = \"$1\"/g" pyproject.toml
-# 2. Update pyproject.toml requires-python if needed.
-# 3. Update pyproject.toml classifiers if needed.
-# 4. Prepare release commit and tag:
+# 3. Update pyproject.toml requires-python if needed.
+# 4. Update pyproject.toml classifiers if needed.
+# 5. Prepare release commit and tag:
 git commit --allow-empty -m "Release $1"
 git tag -a "$1" -m"Release $1 tag"
-# 5. Build pypi package:
+# 6. Build pypi package:
 python3 -m build
-# 6. Push package to pypi:
+# 7. Push package to pypi:
 python3 -m twine upload --repository pypi dist/*
-# 7. Push release commit and tag to origin:
+# 8. Push release commit and tag to origin:
 git push
