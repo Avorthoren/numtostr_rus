@@ -1,4 +1,5 @@
-from typing import Union
+from itertools import chain
+from typing import Union, Iterable
 
 from .db import BASIC_WORDS
 
@@ -11,13 +12,17 @@ BASE2 = BASE * BASE
 #       After implementing Complex, next line should be
 #       Num_T = numbers.Complex
 Num_T = Union[int]
+Words_T = Iterable[str]
 
 # TODO: implement ONES_MODE:
-#       REGULAR: один триллион одна тысяча
+#       REGULAR: один миллиард одна тысяча
 #       SHORT: миллиард тысяча
 #       LONG: один миллиард ноль миллионов одна тысяча
 
 # TODO: implement add_plus flag for adding explicit word for '+' sign.
+
+# TODO: implement explicit_decimal flag for adding ' целых ноль десятых' to
+#       float and Decimal numbers that have zero fractional part.
 
 # TODO: implement SCALE:
 #       SHORT: триллион == 10**12
@@ -27,7 +32,10 @@ Num_T = Union[int]
 
 
 def convert(num: Num_T) -> str:
-	"""Main function of the package."""
+	"""Main function of the package.
+	Converts `num` to russian words representation.
+	Only for int -1000 < num < 1000.
+	"""
 	if num == 0:
 		return BASIC_WORDS[0]
 
@@ -37,39 +45,54 @@ def convert(num: Num_T) -> str:
 	else:
 		minus = False
 
-	num_str = _convert(num)
-
-	return _join('минус' if minus else '', num_str)
-
-
-def _join(*args: str) -> str:
-	return ' '.join(arg for arg in args if arg != '')
+	return _join(
+		_sign(minus),
+		_int_part(num)
+	)
 
 
-def _convert(num: int) -> str:
-	return _before1000(num)
+def _join(*args: Words_T) -> str:
+	return ' '.join(
+		arg
+		for arg in chain(*args)
+		if arg != ''
+	)
 
 
-def _before20(num: int) -> str:
+def _sign(minus: bool) -> Words_T:
+	if minus:
+		yield 'минус'
+
+
+def _int_part(num: int) -> Words_T:
+	yield from _before1000(num)
+
+
+def _before20(num: int) -> Words_T:
 	assert 0 <= num < 20
 	if num == 0:
-		return ''
-	return BASIC_WORDS[num]
+		return
+
+	yield BASIC_WORDS[num]
 
 
-def _before100(num: int) -> str:
+def _before100(num: int) -> Words_T:
 	assert 0 <= num < 100
 	if num < 20:
-		return _before20(num)
+		yield from _before20(num)
+		return
 
 	r = num % BASE
-	return _join(BASIC_WORDS[num - r], _before20(r))
+	yield BASIC_WORDS[num - r]
+	yield from _before20(r)
 
 
-def _before1000(num: int) -> str:
+def _before1000(num: int) -> Words_T:
 	assert 0 <= num < 1000
 	if num < 100:
-		return _before100(num)
+		yield from _before100(num)
+		return
 
 	r = num % BASE2
-	return _join(BASIC_WORDS[num - r], _before100(r))
+	yield BASIC_WORDS[num - r]
+	yield from _before100(r)
