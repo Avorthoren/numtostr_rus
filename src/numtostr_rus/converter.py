@@ -39,7 +39,11 @@ def convert(num: Num_T) -> str:
 
 	num_str = _convert(num)
 
-	return f"{'минус ' if minus else ''}{num_str}"
+	return _join('минус' if minus else '', num_str)
+
+
+def _join(*args: str) -> str:
+	return ' '.join(arg for arg in args if arg != '')
 
 
 def _convert(num: int) -> str:
@@ -59,7 +63,7 @@ def _before100(num: int) -> str:
 		return _before20(num)
 
 	r = num % BASE
-	return f"{BASIC_WORDS[num - r]} {_before20(r)}"
+	return _join(BASIC_WORDS[num - r], _before20(r))
 
 
 def _before1000(num: int) -> str:
@@ -68,4 +72,4 @@ def _before1000(num: int) -> str:
 		return _before100(num)
 
 	r = num % BASE2
-	return f"{BASIC_WORDS[num - r]} {_before100(r)}"
+	return _join(BASIC_WORDS[num - r], _before100(r))

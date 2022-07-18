@@ -13,4 +13,4 @@ if __name__ == "__main__":
 		minus = random.randint(0, 1)
 		if minus:
 			num = -num
-		print(num, convert(num))
+		print(f"{num}: {convert(num)};")
