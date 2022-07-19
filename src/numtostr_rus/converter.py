@@ -1,5 +1,7 @@
+from functools import reduce
 from itertools import chain
-from typing import Union, Iterable, Tuple
+import operator
+from typing import Union, Iterable, Tuple, NamedTuple
 
 from .db import BASE, BASE2, SIGNS, BASIC_WORDS, MULTS_DATA
 
@@ -133,17 +135,33 @@ def _before1000(num: int, step: int) -> Words_T:
 	yield from _before100(r, step)
 
 
-def _simple_convert(num: Num_T) -> Tuple[int]:
+class Mult(NamedTuple):
+	power: int
+	mult: int = 1
+
+	def __str__(self):
+		return f"{self.power}{'' if self.mult == 1 else f':{self.mult}'}"
+
+	__repr__ = __str__
+
+	def construct(self) -> int:
+		return self.mult * (BASE ** self.power)
+
+
+def _simple_convert(num: Num_T) -> Tuple[Mult]:
 	"""Convert number to some kind of powers representations.
-
-
+	Mimics `convert` but uses powers (as ints) instead of words, and glues
+	them into tuple.
+	May be used in the future to do backward conversion from string to number.
+	TODO: implement num <= 0.
 	"""
 	assert num > 0
 
 	return tuple(_simple_int_part(num))
 
 
-def _simple_int_part(num: int, step: int = 0) -> Iterable[int]:
+def _simple_int_part(num: int, step: int = 0) -> Iterable[Mult]:
+	"""See `_int_part` implementation for explanations."""
 	p = MULTS_DATA[step].pow
 	if step+1 < len(MULTS_DATA):
 		diff_mult = BASE ** (MULTS_DATA[step+1].pow - p)
@@ -156,10 +174,50 @@ def _simple_int_part(num: int, step: int = 0) -> Iterable[int]:
 
 	if r < 1000:
 		if r:
-			yield 0
+			yield Mult(0, r)
 	else:
 		yield from _simple_int_part(r)
 
 	if r:
 		if p:
-			yield p
+			yield Mult(p)
+
+
+def _convert_backward_from_simple(powers: Tuple[Mult], left: int = 0, right: int = None) -> int:
+	assert powers
+	assert powers[left].power == 0
+
+	if right is None:
+		right = len(powers)
+
+	max_left_pow = [1]
+	for i in range(left + 1, right):
+		max_left_pow.append(max(powers[i].power, max_left_pow[-1]))
+
+	# Find common multiplier.
+	# Since `powers[left].power == 0`, minimum value of `cmi` is `left+1`.
+	cmi = right
+	while powers[cmi - 1].power >= max_left_pow[cmi - 1]:
+		cmi -= 1
+	# Calculate it.
+	common_mult = reduce(
+		operator.mul,
+		(powers[i].construct() for i in range(cmi, right)),
+		1
+	)
+
+	# Find rightmost simple chain left of common multiplier.
+	sci = cmi - 1
+	while powers[sci].power:
+		sci -= 1
+	# Calculate it.
+	middle_part = reduce(
+		operator.mul,
+		(powers[i].construct() for i in range(sci, cmi)),
+		1
+	)
+
+	# Calculate rest.
+	left_part = _convert_backward_from_simple(powers, left, sci) if left < sci else 0
+
+	return (left_part + middle_part) * common_mult

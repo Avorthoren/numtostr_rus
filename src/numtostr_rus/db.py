@@ -100,18 +100,18 @@ def make_make_mult_str(mult_base_str: str) -> MultStrMaker_T:
 # MultData must have non-negative int `pow`.
 # First MultData must have zero `pow`.
 # Each next MultData must have `pow` strictly greater than previous.
-MULTS_DATA = (
+MULTS_DATA = [
 	MultData(0, lambda *args: ''),
 	MultData(3, make_thousands_str),
 	# MultData(6, make_make_mult_str('миллион')),
 	MultData(9, make_make_mult_str('миллиард')),
 	# MultData(12, make_make_mult_str('триллион')),
-	# MultData(15, make_make_mult_str('квадриллион')),
+	MultData(15, make_make_mult_str('квадриллион')),
 	# MultData(18, make_make_mult_str('квинтиллион')),
 	# MultData(21, make_make_mult_str('секстиллион')),
 	# MultData(24, make_make_mult_str('септиллион')),
 	# MultData(27, make_make_mult_str('октиллион')),
-	MultData(31, make_make_mult_str('нониллион')),
+	# MultData(30, make_make_mult_str('нониллион')),
 	# MultData(33, make_make_mult_str('дециллион')),
 	# MultData(36, make_make_mult_str('ундециллион')),
 	# MultData(39, make_make_mult_str('дуодециллион')),
@@ -124,7 +124,7 @@ MULTS_DATA = (
 	# MultData(60, make_make_mult_str('новемдециллион')),
 	# MultData(63, make_make_mult_str('вигинтиллион')),
 	# MultData(303, make_make_mult_str('центеллион')),
-)
+]
 
 assert len(MULTS_DATA) > 1
 assert MULTS_DATA[0].pow == 0
