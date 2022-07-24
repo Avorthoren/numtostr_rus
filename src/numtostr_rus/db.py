@@ -1,4 +1,4 @@
-from typing import NamedTuple, Callable
+from typing import NamedTuple, Callable, Iterable, Sequence
 
 # Decimal base
 BASE = 10
@@ -100,6 +100,12 @@ def make_make_mult_str(mult_base_str: str) -> MultStrMaker_T:
 	return _make_mult_str
 
 
+_BASIC_MULTS_DATA = (
+	MultData(0, lambda *args, **kwargs: ''),
+	MultData(SIMPLE_POW, make_thousands_str)
+)
+
+
 # There must be at least two elements in this tuple.
 # MultData must have non-negative int `pow`.
 # First element must have zero `pow`.
@@ -107,8 +113,7 @@ def make_make_mult_str(mult_base_str: str) -> MultStrMaker_T:
 # Each next element must have `pow` strictly greater than previous.
 MULTS_DATA = [
 	# Required elements.
-	MultData(0, lambda *args, **kwargs: ''),
-	MultData(SIMPLE_POW, make_thousands_str),
+	*_BASIC_MULTS_DATA,
 	# Optional elements.
 	# MultData(6, make_make_mult_str('миллион')),
 	MultData(9, make_make_mult_str('миллиард')),
@@ -130,15 +135,47 @@ MULTS_DATA = [
 	# MultData(57, make_make_mult_str('октодециллион')),
 	# MultData(60, make_make_mult_str('новемдециллион')),
 	# MultData(63, make_make_mult_str('вигинтиллион')),
-	# MultData(303, make_make_mult_str('центеллион')),
+	# MultData(303, make_make_mult_str('центиллион')),
 ]
 
-# Some integrity checks.
-assert len(MULTS_DATA) > 1
-assert MULTS_DATA[0].pow == 0
-assert MULTS_DATA[1].pow == SIMPLE_POW
-assert all(
-	# TODO: add constraint 'all powers are multiples of 3'?
-	isinstance(MULTS_DATA[i].pow, int) and MULTS_DATA[i].pow > MULTS_DATA[i-1].pow
-	for i in range(1, len(MULTS_DATA))
+
+# Prefixes of mult names that have 'consecutive' powers:
+# (6, 9), (12, 15), (18, 21), ...
+# See `_long_scale_mults_data` for clarification.
+_LONG_SCALE_MULT_NAMES = (
+	'м', 'б', 'тр', 'квадр', 'квинт', 'секст', 'септ', 'окт', 'нон', 'дец',
+	'ундец', 'дуодец', 'тредец', 'кваттордец', 'квиндец', 'сексдец', 'септендец', 'октодец', 'новемдец', 'вигинт'
 )
+
+
+def _long_scale_mults_data() -> Iterable[MultData]:
+	for i, mult_name in enumerate(_LONG_SCALE_MULT_NAMES):
+		power = (i+1) * 6
+		yield MultData(power, make_make_mult_str(f'{mult_name}иллион'))
+		yield MultData(power + 3, make_make_mult_str(f'{mult_name}иллиард'))
+
+
+LONG_SCALE_MULTS_DATA = [
+	# Required elements.
+	*_BASIC_MULTS_DATA,
+	# Optional elements.
+	*_long_scale_mults_data(),
+	# Special mults:
+	MultData(600, make_make_mult_str(f'центиллион')),
+	MultData(603, make_make_mult_str(f'центиллиард'))
+]
+
+
+def _check_integrity(mults_data: Sequence[MultData]) -> None:
+	assert len(mults_data) > 1
+	assert mults_data[0].pow == 0
+	assert mults_data[1].pow == SIMPLE_POW
+	assert all(
+		# TODO: add constraint 'all powers are multiples of 3'?
+		isinstance(mults_data[i].pow, int) and mults_data[i].pow > mults_data[i-1].pow
+		for i in range(1, len(mults_data))
+	)
+
+
+_check_integrity(MULTS_DATA)
+_check_integrity(LONG_SCALE_MULTS_DATA)
