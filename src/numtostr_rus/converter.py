@@ -3,7 +3,7 @@ from itertools import chain
 import operator
 from typing import Union, Iterable, Tuple, NamedTuple
 
-from .db import BASE, BASE2, SIGNS, BASIC_WORDS, MULTS_DATA
+from .db import BASE, BASE2, SIGNS, BASIC_WORDS, MULTS_DATA, SIMPLE_MULT
 
 
 # TODO: implement float, Decimal, Rational, Complex.
@@ -83,7 +83,7 @@ def _int_part(num: int, step: int = 0) -> Words_T:
 	# For example, if we know only power 3 ('тысяча') and power 9 ('миллиард'),
 	# then in the end for number 101_101_101_000 we will get something like this:
 	# 'сто один миллиард сто одна тысяча сто один тысяч'
-	if r < 1000:
+	if r < SIMPLE_MULT:
 		yield from _before1000(r, step)
 	else:
 		yield from _int_part(r)
@@ -93,7 +93,7 @@ def _int_part(num: int, step: int = 0) -> Words_T:
 
 
 def _before20(num: int, step: int) -> Words_T:
-	assert 0 <= num < 20
+	assert 0 <= num < 2 * BASE
 	if num == 0:
 		return
 
@@ -114,8 +114,8 @@ def _before20(num: int, step: int) -> Words_T:
 
 
 def _before100(num: int, step: int) -> Words_T:
-	assert 0 <= num < 100
-	if num < 20:
+	assert 0 <= num < BASE2
+	if num < 2 * BASE:
 		yield from _before20(num, step)
 		return
 
@@ -125,8 +125,8 @@ def _before100(num: int, step: int) -> Words_T:
 
 
 def _before1000(num: int, step: int) -> Words_T:
-	assert 0 <= num < 1000
-	if num < 100:
+	assert 0 <= num < SIMPLE_MULT
+	if num < BASE2:
 		yield from _before100(num, step)
 		return
 
@@ -172,7 +172,7 @@ def _simple_int_part(num: int, step: int = 0) -> Iterable[Mult]:
 	if q:
 		yield from _simple_int_part(q, step+1)
 
-	if r < 1000:
+	if r < SIMPLE_MULT:
 		if r:
 			yield Mult(0, r)
 	else:
@@ -190,14 +190,14 @@ def _convert_backward_from_simple(powers: Tuple[Mult], left: int = 0, right: int
 	if right is None:
 		right = len(powers)
 
-	max_left_pow = [1]
+	max_left_pow = [0]
 	for i in range(left + 1, right):
-		max_left_pow.append(max(powers[i].power, max_left_pow[-1]))
+		max_left_pow.append(max(powers[i-1].power, max_left_pow[-1]))
 
 	# Find common multiplier.
 	# Since `powers[left].power == 0`, minimum value of `cmi` is `left+1`.
 	cmi = right
-	while powers[cmi - 1].power >= max_left_pow[cmi - 1]:
+	while powers[cmi - 1].power >= max_left_pow[cmi - 1 - left] > 0:
 		cmi -= 1
 	# Calculate it.
 	common_mult = reduce(
@@ -216,6 +216,7 @@ def _convert_backward_from_simple(powers: Tuple[Mult], left: int = 0, right: int
 		(powers[i].construct() for i in range(sci, cmi)),
 		1
 	)
+	# middle_part = _convert_backward_from_simple(powers, sci, cmi)
 
 	# Calculate rest.
 	left_part = _convert_backward_from_simple(powers, left, sci) if left < sci else 0

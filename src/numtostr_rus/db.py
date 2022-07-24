@@ -1,8 +1,12 @@
 from typing import NamedTuple, Callable
 
-
+# Decimal base
 BASE = 10
 BASE2 = BASE * BASE
+# Power, to which conversion algorithm is simple
+SIMPLE_POW = 3
+SIMPLE_MULT = BASE ** SIMPLE_POW
+
 SIGNS = 'плюс', 'минус'
 
 
@@ -56,7 +60,7 @@ class MultData(NamedTuple):
 
 def make_thousands_str(num: int) -> str:
 	assert num >= 0
-	if num >= 1000:
+	if num >= SIMPLE_MULT:
 		return 'тысяч'
 
 	r2 = num % BASE2
@@ -77,7 +81,7 @@ def make_thousands_str(num: int) -> str:
 def make_make_mult_str(mult_base_str: str) -> MultStrMaker_T:
 	def _make_mult_str(num: int) -> str:
 		assert num >= 0
-		if num >= 1000:
+		if num >= SIMPLE_MULT:
 			return f'{mult_base_str}ов'  # 'миллионов'/'миллиардов'
 
 		r2 = num % BASE2
@@ -98,11 +102,14 @@ def make_make_mult_str(mult_base_str: str) -> MultStrMaker_T:
 
 # There must be at least two elements in this tuple.
 # MultData must have non-negative int `pow`.
-# First MultData must have zero `pow`.
-# Each next MultData must have `pow` strictly greater than previous.
+# First element must have zero `pow`.
+# Second element must have `SIMPLE_POW` `pow`.
+# Each next element must have `pow` strictly greater than previous.
 MULTS_DATA = [
-	MultData(0, lambda *args: ''),
-	MultData(3, make_thousands_str),
+	# Required elements.
+	MultData(0, lambda *args, **kwargs: ''),
+	MultData(SIMPLE_POW, make_thousands_str),
+	# Optional elements.
 	# MultData(6, make_make_mult_str('миллион')),
 	MultData(9, make_make_mult_str('миллиард')),
 	# MultData(12, make_make_mult_str('триллион')),
@@ -126,9 +133,12 @@ MULTS_DATA = [
 	# MultData(303, make_make_mult_str('центеллион')),
 ]
 
+# Some integrity checks.
 assert len(MULTS_DATA) > 1
 assert MULTS_DATA[0].pow == 0
+assert MULTS_DATA[1].pow == SIMPLE_POW
 assert all(
+	# TODO: add constraint 'all powers are multiples of 3'?
 	isinstance(MULTS_DATA[i].pow, int) and MULTS_DATA[i].pow > MULTS_DATA[i-1].pow
 	for i in range(1, len(MULTS_DATA))
 )
