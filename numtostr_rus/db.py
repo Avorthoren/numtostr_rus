@@ -1,4 +1,4 @@
-from typing import NamedTuple, Callable, Iterable, Sequence, Optional
+from typing import NamedTuple, Callable, Iterable, Sequence, Optional, Union
 
 # Decimal base
 BASE = 10
@@ -51,7 +51,7 @@ BASIC_WORDS = {
 }
 
 
-MultStrMaker_T = Callable[[Optional[int]], str]
+MultStrMaker_T = Union[Callable[[Optional[int]], str], Callable[[], str]]
 
 
 class MultData(NamedTuple):
@@ -120,53 +120,52 @@ BASIC_MULTS_DATA = (
 # First element must have zero `pow`.
 # Second element must have `SIMPLE_POW` `pow`.
 # Each next element must have `pow` strictly greater than previous.
-# TODO: make it tuple.
-SS_MULTS_DATA = [
+SS_MULTS_DATA = (
 	# Required elements.
 	*BASIC_MULTS_DATA,
 	# Optional elements.
-	# MultData(6, make_make_mult_str('миллион')),
+	MultData(6, make_make_mult_str('миллион')),
 	MultData(9, make_make_mult_str('миллиард')),
-	# MultData(12, make_make_mult_str('триллион')),
+	MultData(12, make_make_mult_str('триллион')),
 	MultData(15, make_make_mult_str('квадриллион')),
-	# MultData(18, make_make_mult_str('квинтиллион')),
-	# MultData(21, make_make_mult_str('секстиллион')),
-	# MultData(24, make_make_mult_str('септиллион')),
-	# MultData(27, make_make_mult_str('октиллион')),
-	# MultData(30, make_make_mult_str('нониллион')),
-	# MultData(33, make_make_mult_str('дециллион')),
-	# MultData(36, make_make_mult_str('ундециллион')),
-	# MultData(39, make_make_mult_str('дуодециллион')),
-	# MultData(42, make_make_mult_str('тредециллион')),
-	# MultData(45, make_make_mult_str('кваттордециллион')),
-	# MultData(48, make_make_mult_str('квиндециллион')),
-	# MultData(51, make_make_mult_str('сексдециллион')),
-	# MultData(54, make_make_mult_str('септендециллион')),
-	# MultData(57, make_make_mult_str('октодециллион')),
-	# MultData(60, make_make_mult_str('новемдециллион')),
-	# MultData(63, make_make_mult_str('вигинтиллион')),
-	# MultData(66, make_make_mult_str('унвигинтиллион')),
-	# MultData(69, make_make_mult_str('дуовигинтиллион')),
-	# MultData(72, make_make_mult_str('тревигинтиллион')),
-	# MultData(75, make_make_mult_str('кваттуорвигинтиллион')),
-	# MultData(78, make_make_mult_str('квинвигинтиллион')),
-	# MultData(81, make_make_mult_str('сексвигинтиллион')),
-	# MultData(84, make_make_mult_str('септенвигинтиллион')),
-	# MultData(87, make_make_mult_str('октовигинтиллион')),
-	# MultData(90, make_make_mult_str('новемвигинтиллион')),
-	# MultData(93, make_make_mult_str('тригинтиллион')),
-	# MultData(96, make_make_mult_str('унтригинтиллион')),
-	# MultData(99, make_make_mult_str('дуотригинтиллион')),
-	# MultData(102, make_make_mult_str('третригинтиллион')),
-	# MultData(105, make_make_mult_str('кваттуортригинтиллион')),
-	# MultData(108, make_make_mult_str('квинтригинтиллион')),
-	# MultData(111, make_make_mult_str('секстригинтиллион')),
-	# MultData(114, make_make_mult_str('септентригинтиллион')),
-	# MultData(117, make_make_mult_str('октотригинтиллион')),
-	# MultData(120, make_make_mult_str('новемтригинтиллион')),
-	# MultData(123, make_make_mult_str('квадрагинтиллион')),
-	# MultData(303, make_make_mult_str('центиллион')),
-]
+	MultData(18, make_make_mult_str('квинтиллион')),
+	MultData(21, make_make_mult_str('секстиллион')),
+	MultData(24, make_make_mult_str('септиллион')),
+	MultData(27, make_make_mult_str('октиллион')),
+	MultData(30, make_make_mult_str('нониллион')),
+	MultData(33, make_make_mult_str('дециллион')),
+	MultData(36, make_make_mult_str('ундециллион')),
+	MultData(39, make_make_mult_str('дуодециллион')),
+	MultData(42, make_make_mult_str('тредециллион')),
+	MultData(45, make_make_mult_str('кваттордециллион')),
+	MultData(48, make_make_mult_str('квиндециллион')),
+	MultData(51, make_make_mult_str('сексдециллион')),
+	MultData(54, make_make_mult_str('септендециллион')),
+	MultData(57, make_make_mult_str('октодециллион')),
+	MultData(60, make_make_mult_str('новемдециллион')),
+	MultData(63, make_make_mult_str('вигинтиллион')),
+	MultData(66, make_make_mult_str('унвигинтиллион')),
+	MultData(69, make_make_mult_str('дуовигинтиллион')),
+	MultData(72, make_make_mult_str('тревигинтиллион')),
+	MultData(75, make_make_mult_str('кваттуорвигинтиллион')),
+	MultData(78, make_make_mult_str('квинвигинтиллион')),
+	MultData(81, make_make_mult_str('сексвигинтиллион')),
+	MultData(84, make_make_mult_str('септенвигинтиллион')),
+	MultData(87, make_make_mult_str('октовигинтиллион')),
+	MultData(90, make_make_mult_str('новемвигинтиллион')),
+	MultData(93, make_make_mult_str('тригинтиллион')),
+	MultData(96, make_make_mult_str('унтригинтиллион')),
+	MultData(99, make_make_mult_str('дуотригинтиллион')),
+	MultData(102, make_make_mult_str('третригинтиллион')),
+	MultData(105, make_make_mult_str('кваттуортригинтиллион')),
+	MultData(108, make_make_mult_str('квинтригинтиллион')),
+	MultData(111, make_make_mult_str('секстригинтиллион')),
+	MultData(114, make_make_mult_str('септентригинтиллион')),
+	MultData(117, make_make_mult_str('октотригинтиллион')),
+	MultData(120, make_make_mult_str('новемтригинтиллион')),
+	MultData(123, make_make_mult_str('квадрагинтиллион')),
+	MultData(303, make_make_mult_str('центиллион')),
+)
 
 
 # Prefixes of long scale multipliers names that have 'consecutive' powers:

@@ -1,11 +1,14 @@
 from itertools import chain, repeat
-from typing import MutableSequence, Tuple, Iterable, Sequence
+from typing import MutableSequence, Tuple, Iterable, Sequence, Iterator
 
-from numtostr_rus.db import SS_MULTS_DATA, LS_MULTS_DATA, MultData, BASIC_MULTS_DATA
+from numtostr_rus import db
 
 
+# Currently all powers of multipliers for both long and short scales are
+# multiples of 3. But let's not rely on this fact and implement more general
+# logic.
 class AnchorMult:
-	def __init__(self, mults: Tuple[MultData, ...]):
+	def __init__(self, mults: Tuple[db.MultData, ...]):
 		self.mults = mults
 		self._pow = sum(mult.pow for mult in mults)
 
@@ -21,12 +24,12 @@ class AnchorMult:
 	__repr__ = __str__
 
 
-ZERO_ANCHOR_MULT = AnchorMult((BASIC_MULTS_DATA[0],))
+ZERO_ANCHOR_MULT = AnchorMult((db.BASIC_MULTS_DATA[0],))
 SS_ANCHOR_MULTS = []
 LS_ANCHOR_MULTS = []
 
 
-def _fill_anchor_mults(mults_data: Iterable[MultData], anchor_mults: MutableSequence[AnchorMult]):
+def _fill_anchor_mults(mults_data: Iterable[db.MultData], anchor_mults: MutableSequence[AnchorMult]):
 	mults_data_it = iter(mults_data)
 	# Consume zero power mult.
 	next(mults_data_it)
@@ -41,7 +44,7 @@ def _fill_anchor_mults(mults_data: Iterable[MultData], anchor_mults: MutableSequ
 			if prev_mult_data.pow + anchor_mult.pow >= mult_data.pow:
 				break
 			anchor_mults.append(AnchorMult(
-				(prev_mult_data, *anchor_mult.mults)
+				(*anchor_mult.mults, prev_mult_data)
 			))
 
 		anchor_mults.append(AnchorMult(
@@ -50,25 +53,21 @@ def _fill_anchor_mults(mults_data: Iterable[MultData], anchor_mults: MutableSequ
 		prev_mult_data = mult_data
 
 
-_fill_anchor_mults(SS_MULTS_DATA, SS_ANCHOR_MULTS)
-_fill_anchor_mults(LS_MULTS_DATA, LS_ANCHOR_MULTS)
+_fill_anchor_mults(db.SS_MULTS_DATA, SS_ANCHOR_MULTS)
+_fill_anchor_mults(db.LS_MULTS_DATA, LS_ANCHOR_MULTS)
 
 
 def get_mults(
 	anchor_mults: Sequence[AnchorMult],
 	step_q: int,
 	step_r: int
-) -> Iterable[MultData]:
+) -> Iterator[db.MultData]:
 	"""Get mults of `step_q * len(anchor_mults) + step_r`-th anchor."""
 	assert 0 <= step_r < len(anchor_mults)
-	# Multipliers go in reversed order in anchors, but `ZERO_ANCHOR_MULT` and
-	# last anchor (`anchor_mults[-1]`) have only one mult, thus don't need
-	# to be reversed.
-
 	# Special case.
 	# It will yield empty string, but just for uniformity...
 	if not step_q and not step_r:
-		return ZERO_ANCHOR_MULT.mults
+		return iter(ZERO_ANCHOR_MULT.mults)
 
 	last_mult = anchor_mults[-1].mults[0]
 	repeat_mults = repeat(last_mult, step_q)
@@ -76,7 +75,7 @@ def get_mults(
 		return repeat_mults
 
 	anchor_mult = anchor_mults[step_r - 1]
-	return chain(reversed(anchor_mult.mults), repeat_mults)
+	return chain(anchor_mult.mults, repeat_mults)
 
 
 def main():

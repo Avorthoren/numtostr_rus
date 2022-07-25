@@ -1,10 +1,9 @@
 from functools import reduce
-from itertools import chain, repeat
+from itertools import chain
 import operator
 from typing import Union, Iterable, Tuple, NamedTuple
 
-from numtostr_rus.db import BASE, BASE2, SIGNS, BASIC_WORDS, SS_MULTS_DATA, SIMPLE_MULT
-from numtostr_rus.mult import SS_ANCHOR_MULTS, LS_ANCHOR_MULTS, ZERO_ANCHOR_MULT, get_mults
+from numtostr_rus import db, mult
 
 
 # TODO: implement float, Decimal, Rational, Complex.
@@ -39,7 +38,7 @@ def convert(num: Num_T) -> str:
 	Only for int -1000 < num < 1000.
 	"""
 	if num == 0:
-		return BASIC_WORDS[0]
+		return db.BASIC_WORDS[0]
 
 	if num < 0:
 		minus = True
@@ -63,38 +62,42 @@ def _join(*args: Words_T) -> str:
 
 def _sign(minus: bool) -> Words_T:
 	if minus:
-		yield SIGNS[minus]
+		yield db.SIGNS[minus]
 
 
-def _int_part(num: int, step: int = 0) -> Words_T:
+def _int_part(num: int, step_q: int = 0, step_r: int = 0) -> Words_T:
 	assert num
-	zero_anchor_mult = ZERO_ANCHOR_MULT
-	anchor_mults = SS_ANCHOR_MULTS
-
-	step_q, step_r = divmod(step, len(anchor_mults))
+	anchor_mults = mult.SS_ANCHOR_MULTS
+	# Total step is `step_q * len(anchor_mults) + step_r`.
+	assert 0 <= step_r < len(anchor_mults)
 
 	next_pow = anchor_mults[step_r].pow
-	anchor_mult = anchor_mults[step_r-1] if step_r else zero_anchor_mult
-	curr_pow = anchor_mult.pow
-	diff_mult = BASE ** (next_pow - curr_pow)
+	curr_pow = anchor_mults[step_r - 1].pow if step_r else 0
+	diff_mult = db.BASE ** (next_pow - curr_pow)
 	q, r = divmod(num, diff_mult)
 
 	if q:
 		# Left part of the number.
-		yield from _int_part(q, step+1)
+		if step_r + 1 < len(anchor_mults):
+			new_step_q, new_step_r = step_q, step_r + 1
+		else:
+			new_step_q, new_step_r = step_q + 1, 0
+		yield from _int_part(q, new_step_q, new_step_r)
 
 	# Anchor system guarantees that at this point `r < SIMPLE_MULT`.
 	if r:
+		mults = mult.get_mults(anchor_mults, step_q, step_r)
+		first_mult = next(mults)
 		# Current part of the number.
-		yield from _before1000(r, step_r)
+		yield from _before1000(r, first_mult)
 		# Multipliers.
-		mults = get_mults(anchor_mults, step_q, step_r)
-		for i, mult_data in enumerate(mults):
-			yield mult_data.make_mult_str(None if i else r)
+		yield first_mult.make_mult_str(r)
+		for mult_data in mults:
+			yield mult_data.make_mult_str()
 
 
-def _before20(num: int, step: int) -> Words_T:
-	assert 0 <= num < 2 * BASE
+def _before20(num: int, first_mult: db.MultData) -> Words_T:
+	assert 0 <= num < 2 * db.BASE
 	if num == 0:
 		return
 
@@ -102,51 +105,51 @@ def _before20(num: int, step: int) -> Words_T:
 	# It would be better to generalize this case (and move it to db) if
 	# one wants to implement more 'special' cases like this. But since there
 	# is only one such simple case at this time, lets keep it here.
-	if step == 1:  # thousands
+	if first_mult.pow == db.SIMPLE_POW:  # thousands
 		if num == 1:
-			yield 'одна'
+			yield 'одна'  # 'тысяча'
 		elif num == 2:
-			yield 'две'
+			yield 'две'   # 'тысячи'
 		else:
-			yield BASIC_WORDS[num]
+			yield db.BASIC_WORDS[num]
 		return
 
-	yield BASIC_WORDS[num]
+	yield db.BASIC_WORDS[num]
 
 
-def _before100(num: int, step: int) -> Words_T:
-	assert 0 <= num < BASE2
-	if num < 2 * BASE:
-		yield from _before20(num, step)
+def _before100(num: int, first_mult: db.MultData) -> Words_T:
+	assert 0 <= num < db.BASE2
+	if num < 2 * db.BASE:
+		yield from _before20(num, first_mult)
 		return
 
-	r = num % BASE
-	yield BASIC_WORDS[num - r]
-	yield from _before20(r, step)
+	r = num % db.BASE
+	yield db.BASIC_WORDS[num - r]
+	yield from _before20(r, first_mult)
 
 
-def _before1000(num: int, step: int) -> Words_T:
-	assert 0 <= num < SIMPLE_MULT
-	if num < BASE2:
-		yield from _before100(num, step)
+def _before1000(num: int, first_mult: db.MultData) -> Words_T:
+	assert 0 <= num < db.SIMPLE_MULT
+	if num < db.BASE2:
+		yield from _before100(num, first_mult)
 		return
 
-	r = num % BASE2
-	yield BASIC_WORDS[num - r]
-	yield from _before100(r, step)
+	r = num % db.BASE2
+	yield db.BASIC_WORDS[num - r]
+	yield from _before100(r, first_mult)
 
 
 class Mult(NamedTuple):
-	power: int
+	pow: int
 	mult: int = 1
 
 	def __str__(self):
-		return f"{self.power}{'' if self.mult == 1 else f':{self.mult}'}"
+		return f"{self.pow}{'' if self.mult == 1 and self.pow else f':{self.mult}'}"
 
 	__repr__ = __str__
 
 	def construct(self) -> int:
-		return self.mult * (BASE ** self.power)
+		return self.mult * (db.BASE ** self.pow)
 
 
 def _simple_convert(num: Num_T) -> Tuple[Mult]:
@@ -161,72 +164,58 @@ def _simple_convert(num: Num_T) -> Tuple[Mult]:
 	return tuple(_simple_int_part(num))
 
 
-def _simple_int_part(num: int, step: int = 0) -> Iterable[Mult]:
+def _simple_int_part(num: int, step_q: int = 0, step_r: int = 0) -> Iterable[Mult]:
 	"""See `_int_part` implementation for explanations."""
-	p = SS_MULTS_DATA[step].pow
-	if step+1 < len(SS_MULTS_DATA):
-		diff_mult = BASE ** (SS_MULTS_DATA[step + 1].pow - p)
-		q, r = divmod(num, diff_mult)
-	else:
-		q, r = 0, num
+	assert num
+	anchor_mults = mult.SS_ANCHOR_MULTS
+	# Total step is `step_q * len(anchor_mults) + step_r`.
+	assert 0 <= step_r < len(anchor_mults)
+
+	next_pow = anchor_mults[step_r].pow
+	curr_pow = anchor_mults[step_r - 1].pow if step_r else 0
+	diff_mult = db.BASE ** (next_pow - curr_pow)
+	q, r = divmod(num, diff_mult)
 
 	if q:
-		yield from _simple_int_part(q, step+1)
+		# Left part of the number.
+		if step_r + 1 < len(anchor_mults):
+			new_step_q, new_step_r = step_q, step_r + 1
+		else:
+			new_step_q, new_step_r = step_q + 1, 0
+		yield from _simple_int_part(q, new_step_q, new_step_r)
 
-	if r < SIMPLE_MULT:
-		if r:
-			yield Mult(0, r)
-	else:
-		yield from _simple_int_part(r)
-
+	# Anchor system guarantees that at this point `r < SIMPLE_MULT`.
 	if r:
-		if p:
-			yield Mult(p)
+		# Current part of the number.
+		yield Mult(0, r)
+		# Multipliers.
+		if step_q or step_r:
+			for mult_data in mult.get_mults(anchor_mults, step_q, step_r):
+				yield Mult(mult_data.pow)
 
 
-def _convert_backward_from_simple(powers: Tuple[Mult], left: int = 0, right: int = None) -> int:
-	assert powers
-	assert powers[left].power == 0
+def _convert_backward_from_simple(powers: Tuple[Mult]) -> int:
+	result = 0
+	left, right = 0, 1
+	while left < len(powers):
+		while right < len(powers) and powers[right].pow:
+			right += 1
 
-	if right is None:
-		right = len(powers)
+		result += reduce(
+			operator.mul,
+			(powers[i].construct() for i in range(left, right))
+		)
 
-	max_left_pow = [0]
-	for i in range(left + 1, right):
-		max_left_pow.append(max(powers[i-1].power, max_left_pow[-1]))
+		left, right = right, right + 1
 
-	# Find common multiplier.
-	# Since `powers[left].power == 0`, minimum value of `cmi` is `left+1`.
-	cmi = right
-	while powers[cmi - 1].power >= max_left_pow[cmi - 1 - left] > 0:
-		cmi -= 1
-	# Calculate it.
-	common_mult = reduce(
-		operator.mul,
-		(powers[i].construct() for i in range(cmi, right)),
-		1
-	)
-
-	# Find rightmost simple chain left of common multiplier.
-	sci = cmi - 1
-	while powers[sci].power:
-		sci -= 1
-	# Calculate it.
-	middle_part = reduce(
-		operator.mul,
-		(powers[i].construct() for i in range(sci, cmi)),
-		1
-	)
-	# middle_part = _convert_backward_from_simple(powers, sci, cmi)
-
-	# Calculate rest.
-	left_part = _convert_backward_from_simple(powers, left, sci) if left < sci else 0
-
-	return (left_part + middle_part) * common_mult
+	return result
 
 
 def main():
-	print(convert(42*10**39 + 101*10**18 + 10**15 + 3*10**12))
+	num = 42 * 10**606 + 73 * 10**177
+	print(f'{num:_}')
+	print(convert(num))
+	print(_simple_convert(abs(num)))
 
 
 if __name__ == "__main__":
