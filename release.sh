@@ -42,8 +42,9 @@ sed -E -i "s/version = \"[0-9](\.[0-9])*\"/version = \"$1\"/g" pyproject.toml & 
 git commit --allow-empty -am "Release $1"
 git tag -a "$1" -m "Release $1 tag" || exit 1
 # 4. Build pypi package:
-python3 -m build || exit 1
+python3 -m build || (set +x && echo -e "${RED}Try in 3.8.0+ env${NC}" && exit 1) || exit 1
 # 5. Push package to pypi:
 python3 -m twine upload --repository pypi dist/* || exit 1
 # 6. Push release commit and tag to origin:
 git push
+git push --tags
