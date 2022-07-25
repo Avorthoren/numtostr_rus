@@ -1,6 +1,6 @@
 [project]
 name = "numtostr-rus"
-version = "1.0"
+version = "1.0.1"
 authors = [
 	{name="Victor Podust", email="undefeatvip@gmail.com"},
 ]
