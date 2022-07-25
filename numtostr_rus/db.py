@@ -1,4 +1,4 @@
-from typing import NamedTuple, Callable, Iterable, Sequence
+from typing import NamedTuple, Callable, Iterable, Sequence, Optional
 
 # Decimal base
 BASE = 10
@@ -50,7 +50,8 @@ BASIC_WORDS = {
 	900: "девятьсот",
 }
 
-MultStrMaker_T = Callable[[int], str]
+
+MultStrMaker_T = Callable[[Optional[int]], str]
 
 
 class MultData(NamedTuple):
@@ -58,9 +59,12 @@ class MultData(NamedTuple):
 	make_mult_str: MultStrMaker_T
 
 
-def make_thousands_str(num: int) -> str:
-	assert num >= 0
-	if num >= SIMPLE_MULT:
+def make_thousands_str(num: int = None) -> str:
+	assert num is None or 0 <= num < SIMPLE_MULT
+	# If we know only thousands, then, for example, number 21000_000 will be
+	# converted to 'двадцать одна тысяча тысяч', and for first multiplier this
+	# function will be called as ...(21), but second - ...(None).
+	if num is None:
 		return 'тысяч'
 
 	r2 = num % BASE2
@@ -79,9 +83,13 @@ def make_thousands_str(num: int) -> str:
 
 # General case for other multipliers.
 def make_make_mult_str(mult_base_str: str) -> MultStrMaker_T:
-	def _make_mult_str(num: int) -> str:
-		assert num >= 0
-		if num >= SIMPLE_MULT:
+	def _make_mult_str(num: int = None) -> str:
+		assert num is None or 0 <= num < SIMPLE_MULT
+		# If we know only thousands and millions, then, for example, number
+		# 21_000_000_000_000 will be converted to
+		# 'двадцать один миллион миллионов', and for first multiplier this
+		# function will be called as ...(21), but second - ...().
+		if num is None:
 			return f'{mult_base_str}ов'  # 'миллионов'/'миллиардов'
 
 		r2 = num % BASE2
@@ -100,20 +108,22 @@ def make_make_mult_str(mult_base_str: str) -> MultStrMaker_T:
 	return _make_mult_str
 
 
-_BASIC_MULTS_DATA = (
+BASIC_MULTS_DATA = (
 	MultData(0, lambda *args, **kwargs: ''),
 	MultData(SIMPLE_POW, make_thousands_str)
 )
 
 
+# Short scale multipliers data.
 # There must be at least two elements in this tuple.
 # MultData must have non-negative int `pow`.
 # First element must have zero `pow`.
 # Second element must have `SIMPLE_POW` `pow`.
 # Each next element must have `pow` strictly greater than previous.
-MULTS_DATA = [
+# TODO: make it tuple.
+SS_MULTS_DATA = [
 	# Required elements.
-	*_BASIC_MULTS_DATA,
+	*BASIC_MULTS_DATA,
 	# Optional elements.
 	# MultData(6, make_make_mult_str('миллион')),
 	MultData(9, make_make_mult_str('миллиард')),
@@ -135,35 +145,61 @@ MULTS_DATA = [
 	# MultData(57, make_make_mult_str('октодециллион')),
 	# MultData(60, make_make_mult_str('новемдециллион')),
 	# MultData(63, make_make_mult_str('вигинтиллион')),
+	# MultData(66, make_make_mult_str('унвигинтиллион')),
+	# MultData(69, make_make_mult_str('дуовигинтиллион')),
+	# MultData(72, make_make_mult_str('тревигинтиллион')),
+	# MultData(75, make_make_mult_str('кваттуорвигинтиллион')),
+	# MultData(78, make_make_mult_str('квинвигинтиллион')),
+	# MultData(81, make_make_mult_str('сексвигинтиллион')),
+	# MultData(84, make_make_mult_str('септенвигинтиллион')),
+	# MultData(87, make_make_mult_str('октовигинтиллион')),
+	# MultData(90, make_make_mult_str('новемвигинтиллион')),
+	# MultData(93, make_make_mult_str('тригинтиллион')),
+	# MultData(96, make_make_mult_str('унтригинтиллион')),
+	# MultData(99, make_make_mult_str('дуотригинтиллион')),
+	# MultData(102, make_make_mult_str('третригинтиллион')),
+	# MultData(105, make_make_mult_str('кваттуортригинтиллион')),
+	# MultData(108, make_make_mult_str('квинтригинтиллион')),
+	# MultData(111, make_make_mult_str('секстригинтиллион')),
+	# MultData(114, make_make_mult_str('септентригинтиллион')),
+	# MultData(117, make_make_mult_str('октотригинтиллион')),
+	# MultData(120, make_make_mult_str('новемтригинтиллион')),
+	# MultData(123, make_make_mult_str('квадрагинтиллион')),
 	# MultData(303, make_make_mult_str('центиллион')),
 ]
 
 
-# Prefixes of mult names that have 'consecutive' powers:
+# Prefixes of long scale multipliers names that have 'consecutive' powers:
 # (6, 9), (12, 15), (18, 21), ...
 # See `_long_scale_mults_data` for clarification.
-_LONG_SCALE_MULT_NAMES = (
-	'м', 'б', 'тр', 'квадр', 'квинт', 'секст', 'септ', 'окт', 'нон', 'дец',
-	'ундец', 'дуодец', 'тредец', 'кваттордец', 'квиндец', 'сексдец', 'септендец', 'октодец', 'новемдец', 'вигинт'
+_LS_MULT_NAMES = (
+	'м', 'б', 'тр', 'квадр', 'квинт',                                             # 6..33
+	'секст', 'септ', 'окт', 'нон', 'дец',                                         # 36..63
+	'ундец', 'дуодец', 'тредец', 'кваттордец', 'квиндец',                         # 66..93
+	'сексдец', 'септендец', 'октодец', 'новемдец', 'вигинт',                      # 96..123
+	'унвигинт', 'дуовигинт', 'тревигинт', 'кваттуорвигинт', 'квинвигинт',         # 126..153
+	'сексвигинт', 'септенвигинт', 'октовигинт', 'новемвигинт', 'тригинт',         # 156..183
+	'унтригинт', 'дуотригинт', 'третригинт', 'кваттуортригинт', 'квинтригинт',    # 186..213
+	'секстригинт', 'септентригинт', 'октотригинт', 'новемтригинт', 'квадрагинт',  # 216..243
+	# 'цент' will be added separately below.
 )
 
 
-def _long_scale_mults_data() -> Iterable[MultData]:
-	for i, mult_name in enumerate(_LONG_SCALE_MULT_NAMES):
-		power = (i+1) * 6
-		yield MultData(power, make_make_mult_str(f'{mult_name}иллион'))
-		yield MultData(power + 3, make_make_mult_str(f'{mult_name}иллиард'))
+def _ls_mults_data(mult_names: Iterable[str], start_power_index: int) -> Iterable[MultData]:
+	for power_index, mult_name in enumerate(mult_names, start_power_index):
+		yield MultData(power_index * 6, make_make_mult_str(f'{mult_name}иллион'))
+		yield MultData(power_index * 6 + 3, make_make_mult_str(f'{mult_name}иллиард'))
 
 
-LONG_SCALE_MULTS_DATA = [
+# Long scale multipliers data.
+LS_MULTS_DATA = (
 	# Required elements.
-	*_BASIC_MULTS_DATA,
+	*BASIC_MULTS_DATA,
 	# Optional elements.
-	*_long_scale_mults_data(),
+	*_ls_mults_data(_LS_MULT_NAMES, start_power_index=1),
 	# Special mults:
-	MultData(600, make_make_mult_str(f'центиллион')),
-	MultData(603, make_make_mult_str(f'центиллиард'))
-]
+	*_ls_mults_data(mult_names=('цент',), start_power_index=100),
+)
 
 
 def _check_integrity(mults_data: Sequence[MultData]) -> None:
@@ -177,5 +213,13 @@ def _check_integrity(mults_data: Sequence[MultData]) -> None:
 	)
 
 
-_check_integrity(MULTS_DATA)
-_check_integrity(LONG_SCALE_MULTS_DATA)
+_check_integrity(SS_MULTS_DATA)
+_check_integrity(LS_MULTS_DATA)
+
+
+def main():
+	pass
+
+
+if __name__ == "__main__":
+	main()

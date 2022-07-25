@@ -1,9 +1,10 @@
 from functools import reduce
-from itertools import chain
+from itertools import chain, repeat
 import operator
 from typing import Union, Iterable, Tuple, NamedTuple
 
-from .db import BASE, BASE2, SIGNS, BASIC_WORDS, MULTS_DATA, SIMPLE_MULT
+from numtostr_rus.db import BASE, BASE2, SIGNS, BASIC_WORDS, SS_MULTS_DATA, SIMPLE_MULT
+from numtostr_rus.mult import SS_ANCHOR_MULTS, LS_ANCHOR_MULTS, ZERO_ANCHOR_MULT, get_mults
 
 
 # TODO: implement float, Decimal, Rational, Complex.
@@ -25,6 +26,7 @@ Words_T = Iterable[str]
 # TODO: implement SCALE:
 #       SHORT: триллион == 10**12
 #       LONG: триллион == 10**18
+#       CUSTOM: ...
 
 # TODO: implement capitalize flag for capitalizing first word.
 
@@ -65,31 +67,30 @@ def _sign(minus: bool) -> Words_T:
 
 
 def _int_part(num: int, step: int = 0) -> Words_T:
-	mult_data = MULTS_DATA[step]
-	if step+1 < len(MULTS_DATA):
-		diff_mult = BASE ** (MULTS_DATA[step+1].pow - mult_data.pow)
-		q, r = divmod(num, diff_mult)
-	else:
-		# Very big number encountered. Process rest with known multipliers.
-		# For example, if we know only power 3 ('тысяча'), then in the end for
-		# number 101_101_101_000 we will get something like this:
-		# 'сто одна тысяча сто один тысяч сто один тысяч'
-		q, r = 0, num
+	assert num
+	zero_anchor_mult = ZERO_ANCHOR_MULT
+	anchor_mults = SS_ANCHOR_MULTS
+
+	step_q, step_r = divmod(step, len(anchor_mults))
+
+	next_pow = anchor_mults[step_r].pow
+	anchor_mult = anchor_mults[step_r-1] if step_r else zero_anchor_mult
+	curr_pow = anchor_mult.pow
+	diff_mult = BASE ** (next_pow - curr_pow)
+	q, r = divmod(num, diff_mult)
 
 	if q:
+		# Left part of the number.
 		yield from _int_part(q, step+1)
 
-	# Difference in neighbour's powers are not necessary equal to 3.
-	# For example, if we know only power 3 ('тысяча') and power 9 ('миллиард'),
-	# then in the end for number 101_101_101_000 we will get something like this:
-	# 'сто один миллиард сто одна тысяча сто один тысяч'
-	if r < SIMPLE_MULT:
-		yield from _before1000(r, step)
-	else:
-		yield from _int_part(r)
-
+	# Anchor system guarantees that at this point `r < SIMPLE_MULT`.
 	if r:
-		yield mult_data.make_mult_str(r)
+		# Current part of the number.
+		yield from _before1000(r, step_r)
+		# Multipliers.
+		mults = get_mults(anchor_mults, step_q, step_r)
+		for i, mult_data in enumerate(mults):
+			yield mult_data.make_mult_str(None if i else r)
 
 
 def _before20(num: int, step: int) -> Words_T:
@@ -98,7 +99,7 @@ def _before20(num: int, step: int) -> Words_T:
 		return
 
 	# Special case here.
-	# It would be better to generalize this login (and move it to db) if
+	# It would be better to generalize this case (and move it to db) if
 	# one wants to implement more 'special' cases like this. But since there
 	# is only one such simple case at this time, lets keep it here.
 	if step == 1:  # thousands
@@ -162,9 +163,9 @@ def _simple_convert(num: Num_T) -> Tuple[Mult]:
 
 def _simple_int_part(num: int, step: int = 0) -> Iterable[Mult]:
 	"""See `_int_part` implementation for explanations."""
-	p = MULTS_DATA[step].pow
-	if step+1 < len(MULTS_DATA):
-		diff_mult = BASE ** (MULTS_DATA[step+1].pow - p)
+	p = SS_MULTS_DATA[step].pow
+	if step+1 < len(SS_MULTS_DATA):
+		diff_mult = BASE ** (SS_MULTS_DATA[step + 1].pow - p)
 		q, r = divmod(num, diff_mult)
 	else:
 		q, r = 0, num
@@ -222,3 +223,12 @@ def _convert_backward_from_simple(powers: Tuple[Mult], left: int = 0, right: int
 	left_part = _convert_backward_from_simple(powers, left, sci) if left < sci else 0
 
 	return (left_part + middle_part) * common_mult
+
+
+def main():
+	print(convert(42*10**39 + 101*10**18 + 10**15 + 3*10**12))
+
+
+if __name__ == "__main__":
+	main()
+

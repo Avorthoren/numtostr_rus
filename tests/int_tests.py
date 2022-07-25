@@ -1,8 +1,7 @@
 import random
-from typing import Tuple
 
-from src.numtostr_rus import convert, db, converter
-
+from numtostr_rus import db, converter
+from numtostr_rus import convert
 
 # TODO: add tests.
 
@@ -28,16 +27,6 @@ def process(num: int, show: bool = False, hide: bool = False) -> None:
 
 
 if __name__ == "__main__":
-	"""
-	alias направляет на скрипт
-	выполнить исходную команду || exit 1
-	убедиться, что это нужная подкоманда
-	...
-	в зависимости от того, init это, или clone, из соответствующего скрипта
-	получить конечную директорию
-	
-	"""
-
 	# S, B, Q = 10**3, 10**9, 10**15
 	# process((5 * Q + 5 * S * B))
 	# process((5 * Q + 5 * S) * B)
@@ -59,7 +48,7 @@ if __name__ == "__main__":
 	# process(((5 * Q + 5 * S) * B * Q + 5 * S * S), show=True)
 	#
 	# print()
-	db.MULTS_DATA[-1] = db.MultData(30, db.make_make_mult_str('нониллион'))
+	db.SS_MULTS_DATA[-1] = db.MultData(30, db.make_make_mult_str('нониллион'))
 	# S, B, N = 10**3, 10**9, 10**31
 	# process((5 * N + 5 * S * B) * N * N)
 	# process((5 * N + 5 * S) * B * N * N)
@@ -68,7 +57,7 @@ if __name__ == "__main__":
 	# process((5 * B + 5 * S) * B * B * N * N)
 
 	random.seed(42)
-	for e in range(1000_000_000):
+	for e in range(1000_000):
 		length = random.randint(1, 100)
 		num_str = ''.join(
 			str(random.randint(1, 9) if (i == 0 or random.random() < 0.05) else 0)
@@ -80,6 +69,7 @@ if __name__ == "__main__":
 		# 	num = -num
 		# print(f"{num:_}: {convert(num)};")
 		if e < 10:
+			print(f'{num:_}')
 			process(num)
 		else:
 			process(num, show=False, hide=True)
